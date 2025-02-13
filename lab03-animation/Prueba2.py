@@ -4,6 +4,8 @@ import arcade
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 CAR_SPEED = 2
+CLOUD_SPEED = 0.5
+BIRD_SPEED = 1.5
 
 
 class Car:
@@ -34,6 +36,39 @@ class Car:
             self.x = -self.width
 
 
+class Cloud:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def draw(self):
+        arcade.draw_circle_filled(self.x, self.y, 30, arcade.color.LIGHT_GRAY)
+        arcade.draw_circle_filled(self.x + 20, self.y + 10, 25, arcade.color.LIGHT_GRAY)
+        arcade.draw_circle_filled(self.x - 20, self.y + 10, 25, arcade.color.LIGHT_GRAY)
+        arcade.draw_circle_filled(self.x + 40, self.y, 20, arcade.color.LIGHT_GRAY)
+        arcade.draw_circle_filled(self.x - 40, self.y, 20, arcade.color.LIGHT_GRAY)
+
+    def update(self):
+        self.x += CLOUD_SPEED
+        if self.x > SCREEN_WIDTH + 50:
+            self.x = -50
+
+
+class Bird:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def draw(self):
+        arcade.draw_arc_outline(self.x - 10, self.y, 20, 10, arcade.color.BLACK, 0, 180, 2)
+        arcade.draw_arc_outline(self.x + 10, self.y, 20, 10, arcade.color.BLACK, 0, 180, 2)
+
+    def update(self):
+        self.x += BIRD_SPEED
+        if self.x > SCREEN_WIDTH + 20:
+            self.x = -20
+
+
 class CityWindow(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, "Ciudad con coches animados")
@@ -42,6 +77,20 @@ class CityWindow(arcade.Window):
             Car(150, 80, arcade.color.RED, arcade.color.DARK_RED),
             Car(400, 120, arcade.color.BLUE, arcade.color.DARK_BLUE),
             Car(650, 90, arcade.color.YELLOW, arcade.color.ORANGE)
+        ]
+        self.clouds = [
+            Cloud(150, 550),
+            Cloud(350, 520),
+            Cloud(600, 540),
+            Cloud(700, 500),
+            Cloud(500, 560)
+        ]
+        self.birds = [
+            Bird(100, 550),
+            Bird(200, 500),
+            Bird(300, 540),
+            Bird(500, 530),
+            Bird(700, 520)
         ]
 
     def on_draw(self):
@@ -53,6 +102,14 @@ class CityWindow(arcade.Window):
         # Dibujar sol
         arcade.draw_circle_filled(780, 550, 90, arcade.color.SUNSET)
 
+        # Dibujar nubes
+        for cloud in self.clouds:
+            cloud.draw()
+
+        # Dibujar gaviotas
+        for bird in self.birds:
+            bird.draw()
+
         # Dibujar coches
         for car in self.cars:
             car.draw()
@@ -60,6 +117,10 @@ class CityWindow(arcade.Window):
     def update(self, delta_time):
         for car in self.cars:
             car.update()
+        for cloud in self.clouds:
+            cloud.update()
+        for bird in self.birds:
+            bird.update()
 
 
 if __name__ == "__main__":
