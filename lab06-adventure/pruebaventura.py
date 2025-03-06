@@ -1,93 +1,67 @@
+import arcade
 import random
+from mapas import MapManager
+from personaje import Player
+from enemigos import Enemy
+from interfaz import GameInterface
+from objetos import Item
+
+# Configuración básica
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+SCREEN_TITLE = "Juego de Aventuras"
 
 
-class Room:
-    def __init__(self, description, north=None, east=None, south=None, west=None, up=None, down=None, items=None,
-                 enemy=None):
-        self.description = description
-        self.north = north
-        self.east = east
-        self.south = south
-        self.west = west
-        self.up = up
-        self.down = down
-        self.items = items if items else []
-        self.enemy = enemy
-
-
-class Player:
+class GameWindow(arcade.Window):
     def __init__(self):
-        self.health = 100
-        self.inventory = []
-        self.current_room = 0
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+        arcade.set_background_color(arcade.color.AMAZON)
 
-    def pick_up(self, item):
-        self.inventory.append(item)
-        print(f"Has recogido {item}.")
+        self.map_manager = MapManager()
+        self.player = Player()
+        self.enemies = []
+        self.items = []
+        self.interface = None
 
-    def attack(self, enemy):
-        damage = random.randint(5, 20)
-        print(f"Has atacado a {enemy} y le has hecho {damage} de daño.")
+        self.setup()
 
+    def setup(self):
+        """Inicializa el juego"""
+        self.map_manager.load_map()
+        self.enemies = [Enemy(x, y) for x, y in self.map_manager.spawn_enemies()]
+        self.items = [Item("Poción Curativa", "Recupera vida", 'heal', random.randint(20, 50)) for _ in range(2)]
 
-def main():
-    # Lista de habitaciones
-    room_list = []
-    room_list.append(
-        Room("Estás en una gran sala con un trono dorado. Pasajes al norte, este y sur.", north=1, east=3, south=2))
-    room_list.append(Room("Estás en una biblioteca antigua llena de libros de magia. Pasajes al sur.", south=0,
-                          items=["Libro de hechizos"]))
-    room_list.append(Room("Estás en un oscuro calabozo con cadenas oxidadas. Hay una puerta al norte.", north=0,
-                          items=["Llave dorada"], enemy="Esqueleto"))
-    room_list.append(
-        Room("Estás en una armería repleta de armas. Hay una puerta al oeste.", west=0, items=["Espada legendaria"]))
+        from interfaz import GameInterface
+        self.interface = GameInterface(self)
 
-    player = Player()
-    done = False
+    def on_draw(self):
+        arcade.start_render()
+        self.map_manager.draw()
+        self.player.draw()
+        for enemy in self.enemies:
+            enemy.draw()
+        for item in self.items:
+            item.draw()
+        if self.interface:
+            self.interface.draw()
 
-    while not done:
-        current_room = room_list[player.current_room]
-        print("\n" + current_room.description)
-        if current_room.items:
-            print(f"Objetos en la habitación: {', '.join(current_room.items)}")
-        if current_room.enemy:
-            print(f"¡Cuidado! Hay un {current_room.enemy} aquí.")
+    def on_update(self, delta_time):
+        self.player.update()
+        for enemy in self.enemies:
+            enemy.update(self.player)
 
-        command = input("¿Qué quieres hacer? (n/e/s/o/tomar/atacar/salir): ").strip().lower()
+    def on_key_press(self, key, modifiers):
+        self.player.handle_input(key, modifiers, self.enemies, self.items)
 
-        if command in ["n", "norte"]:
-            next_room = current_room.north
-        elif command in ["e", "este"]:
-            next_room = current_room.east
-        elif command in ["s", "sur"]:
-            next_room = current_room.south
-        elif command in ["o", "oeste"]:
-            next_room = current_room.west
-        elif command == "tomar":
-            if current_room.items:
-                item = current_room.items.pop()
-                player.pick_up(item)
-            else:
-                print("No hay nada que tomar aquí.")
-            continue
-        elif command == "atacar":
-            if current_room.enemy:
-                player.attack(current_room.enemy)
-            else:
-                print("No hay nadie a quien atacar aquí.")
-            continue
-        elif command == "salir":
-            print("Has salido del juego.")
-            break
-        else:
-            print("No entiendo esa acción.")
-            continue
-
-        if next_room is None:
-            print("No puedes ir en esa dirección.")
-        else:
-            player.current_room = next_room
+        if key == arcade.key.ENTER:
+            for enemy in self.enemies:
+                if abs(enemy.x - self.player.x) < 50 and abs(enemy.y - self.player.y) < 50:
+                    self.interface.show_combat_menu(enemy)
+                    if enemy.health <= 0:
+                        self.enemies.remove(enemy)
+                    break
 
 
 if __name__ == "__main__":
-    main()
+    game = GameWindow()
+    arcade.run()
